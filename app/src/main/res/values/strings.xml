@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">AppProject</string>
+    <string name="rx_btn_title">Rxjava</string>
+    <string name="rxjava">rxjava</string>
+    <string name="rx_start_toast">Start Rxjava</string>
+    <string name="empty_title">Title</string>
 </resources>
