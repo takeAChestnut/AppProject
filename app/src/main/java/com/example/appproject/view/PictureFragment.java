@@ -7,14 +7,20 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import com.example.appproject.R;
+import com.example.appproject.model.Picture;
+import com.example.appproject.presenter.RxPresenter;
 import com.example.appproject.view.dummy.DummyContent;
 import com.example.appproject.view.dummy.DummyContent.DummyItem;
+import com.yalantis.phoenix.PullToRefreshView;
+import com.yanzhenjie.recyclerview.SwipeRecyclerView;
 
 import java.util.List;
 
@@ -26,11 +32,20 @@ import java.util.List;
  */
 public class PictureFragment extends Fragment {
 
+    private static final String TAG = "PictureFragment";
+
     // TODO: Customize parameter argument names
     private static final String ARG_COLUMN_COUNT = "column-count";
     // TODO: Customize parameters
     private int mColumnCount = 1;
     private OnListFragmentInteractionListener mListener;
+
+    public static final int REFRESH_DELAY = 500;
+
+    private SwipeRecyclerView mRecyclerView;
+    private PictureRecyclerViewAdapter mAdapter;
+    private RxPresenter mRxPresenter;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -56,6 +71,10 @@ public class PictureFragment extends Fragment {
         if (getArguments() != null) {
             mColumnCount = getArguments().getInt(ARG_COLUMN_COUNT);
         }
+
+        mRxPresenter = new RxPresenter(getContext());
+        mRxPresenter.subscribePicture();
+        //mRxPresenter.requestPicture();
     }
 
     @Override
@@ -63,20 +82,73 @@ public class PictureFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_picture_list, container, false);
 
-        // Set the adapter
-        if (view instanceof RecyclerView) {
-            Context context = view.getContext();
-            RecyclerView recyclerView = (RecyclerView) view;
-            if (mColumnCount <= 1) {
-                recyclerView.setLayoutManager(new LinearLayoutManager(context));
-            } else {
-                recyclerView.setLayoutManager(new GridLayoutManager(context, mColumnCount));
-            }
-            recyclerView.setAdapter(new PictureRecyclerViewAdapter(DummyContent.ITEMS, mListener));
-        }
+        initView(view);
         return view;
     }
 
+    private void initView(View view) {
+        // Set the adapter
+        Context context = view.getContext();
+        mSwipeRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.swipe_to_refresh);
+        mSwipeRefreshLayout.setOnRefreshListener(mRefreshListener);
+        mRecyclerView = (SwipeRecyclerView) view.findViewById(R.id.list);
+        if (mColumnCount <= 1) {
+            mRecyclerView.setLayoutManager(new LinearLayoutManager(context));
+        } else {
+            mRecyclerView.setLayoutManager(new GridLayoutManager(context, mColumnCount));
+        }
+        List<Picture> pictures = mRxPresenter.getPictures();
+        mAdapter = new PictureRecyclerViewAdapter(getContext(), pictures, mListener);
+        mRecyclerView.setAdapter(mAdapter);
+        mRecyclerView.useDefaultLoadMore();
+        mRecyclerView.loadMoreFinish(false, true);
+        mRecyclerView.setLoadMoreListener(mLoadMoreListener);
+    }
+
+    private SwipeRefreshLayout.OnRefreshListener mRefreshListener = new SwipeRefreshLayout.OnRefreshListener() {
+        @Override
+        public void onRefresh() {
+            Log.d(TAG, "onRefresh: ");
+            mRecyclerView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
+            }, 1000); // 延时模拟请求服务器。
+            mRxPresenter.requestPicture();
+            mRxPresenter.setListener(new RxPresenter.PictureListener() {
+                @Override
+                public void onPictureDataUpdated(List list) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mAdapter.updateDataSet(list);
+                        }
+                    });
+                }
+            });
+        }
+    };
+
+    private SwipeRecyclerView.LoadMoreListener mLoadMoreListener = new SwipeRecyclerView.LoadMoreListener() {
+        @Override
+        public void onLoadMore() {
+            Log.d(TAG, "onLoadMore: ");
+            mRxPresenter.requestPicture();
+            mRxPresenter.setListener(new RxPresenter.PictureListener() {
+                @Override
+                public void onPictureDataUpdated(List list) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mAdapter.updateDataSet(list);
+                            mRecyclerView.loadMoreFinish(false, true);
+                        }
+                    });
+                }
+            });
+        }
+    };
 
     @Override
     public void onAttach(Context context) {
@@ -95,6 +167,12 @@ public class PictureFragment extends Fragment {
         mListener = null;
     }
 
+    @Override
+    public void onDestroy() {
+        mRxPresenter.destroy();
+        super.onDestroy();
+    }
+
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
@@ -107,6 +185,6 @@ public class PictureFragment extends Fragment {
      */
     public interface OnListFragmentInteractionListener {
         // TODO: Update argument type and name
-        void onListFragmentInteraction(DummyItem item);
+        void onListFragmentInteraction(Picture item, int position);
     }
 }

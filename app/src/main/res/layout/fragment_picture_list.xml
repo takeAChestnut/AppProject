@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
+
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/list"
-    android:name="com.example.appproject.view.PictureFragment"
+    android:id="@+id/swipe_to_refresh"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_marginLeft="16dp"
-    android:layout_marginRight="16dp"
-    app:layoutManager="LinearLayoutManager"
-    tools:context=".view.PictureFragment"
-    tools:listitem="@layout/fragment_picture" />
+    android:layout_height="match_parent">
+
+    <com.yanzhenjie.recyclerview.SwipeRecyclerView
+        android:id="@+id/list"
+        android:name="com.example.appproject.view.PictureFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        app:layoutManager="LinearLayoutManager"
+        tools:context=".view.PictureFragment"
+        tools:listitem="@layout/fragment_picture" />
+
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
